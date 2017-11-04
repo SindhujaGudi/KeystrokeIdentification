@@ -1,0 +1,13 @@
+public class TimeIntervalCounter {
+    long totalTime = 0L;
+    int count = 0;
+
+    public void addInterval(long interval) {
+        this.totalTime += interval;
+        this.count++;
+    }
+
+    public long getAverage() {
+        return this.totalTime / this.count;
+    }
+}
