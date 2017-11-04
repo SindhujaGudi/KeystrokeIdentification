@@ -1,92 +1,71 @@
-
 import javafx.application.Application;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.TextArea;
-import javafx.scene.input.KeyCode;
-import javafx.scene.layout.GridPane;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.shape.Polygon;
 import javafx.stage.Stage;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
+/*
+This is the class containing the main() method.
+This class creates the GUI.
+It controls the flow of the application.
+ */
 public class MainPanel extends Application {
-    private final static String FILE_PATH_TO_INPUT_SAMPLE_TIMINGS = "sample_digraph";
-    private final static String INPUT_DELIMITER = ",";
-
-    private List<Digraph> sampleKeyTimings = null;
-    private List<KeyStroke> allKeyStrokes = new ArrayList<>();
-    private double typingSpeedRatio = 1.25D;
-
-    private TextArea inputTextArea;
-
+    // The entry point to the application. It launches the user interface.
     public static void main(String[] args) {
         launch(args);
     }
 
     @Override
     public void start(Stage primaryStage) {
-        readSampleKeyTimings();
-        GridPane gridPane = new GridPane();
+        // This is the main panel and contains the other components
+        BorderPane mainPanel = new BorderPane();
+        HBox topNavigation = new HBox();
+        topNavigation.setPadding(new Insets(5));
+        Button backButton = new Button("Back");
+        backButton.setShape(new Polygon(0.0, 10.0,
+                12.0, 0.0,
+                80.0, 0.0,
+                80.0, 20.0,
+                12.0, 20.0));
+        topNavigation.getChildren().addAll(backButton);
 
-        inputTextArea = new TextArea();
-        inputTextArea.onKeyPressedProperty().set(event -> processKey(event.getCode(), event.isShiftDown()));
-        GridPane.setConstraints(inputTextArea, 1, 1, 2, 1);
+        FreeTextPanel freeTextPanel = new FreeTextPanel();
+        CreateProfilePanel createProfilePanel = new CreateProfilePanel();
 
-        Button resetBtn = new Button("Reset");
-        resetBtn.onActionProperty().set(event -> processResetButton());
-        GridPane.setConstraints(resetBtn, 1, 2);
+        EventHandler<ActionEvent> createProfileHandler = event -> {
+            primaryStage.setTitle("Create Profile");
+            mainPanel.setCenter(createProfilePanel);
+            mainPanel.setTop(topNavigation);
+            createProfilePanel.reset();
+        };
+        EventHandler<ActionEvent> enterFreeTextHandler = event -> {
+            primaryStage.setTitle("Enter Free Text");
+            mainPanel.setCenter(freeTextPanel);
+            mainPanel.setTop(topNavigation);
+            freeTextPanel.reset();
+        };
+        OptionsPanel optionsPanel = new OptionsPanel(createProfileHandler, enterFreeTextHandler);
 
-        Button submitBtn = new Button("Submit");
-        submitBtn.onActionProperty().set(event -> processSubmitButton());
-        GridPane.setConstraints(submitBtn, 2, 2);
+        mainPanel.setCenter(optionsPanel);
 
-        gridPane.getChildren().addAll(inputTextArea, resetBtn, submitBtn);
+        backButton.setOnAction(event -> {
+            primaryStage.setTitle("Keystroke Authentication");
+            mainPanel.setCenter(optionsPanel);
+            mainPanel.setTop(null);
+        });
 
-        Scene scene = new Scene(gridPane, 500, 500);
-        primaryStage.setTitle("Keystroke authentication");
+        // Make the main panel visible
+        Scene scene = new Scene(mainPanel, 500, 250);
+        primaryStage.setMinHeight(200);
+        primaryStage.setMinWidth(400);
+        primaryStage.setTitle("Keystroke Authentication");
         primaryStage.setScene(scene);
         primaryStage.show();
     }
 
-    private void processResetButton() {
-        allKeyStrokes.clear();
-        inputTextArea.clear();
-        inputTextArea.requestFocus();
-    }
-
-    private void readSampleKeyTimings() {
-        try {
-            sampleKeyTimings = new FileReader(FILE_PATH_TO_INPUT_SAMPLE_TIMINGS, INPUT_DELIMITER).read();
-        } catch (IOException e) {
-            Logger.error("Error while reading input file", e);
-            System.exit(1);
-        }
-        System.out.println(sampleKeyTimings);
-    }
-
-    private void processSubmitButton() {
-        List<Digraph> freeTextDigraphTimings = new ArrayList<>();
-        KeyStroke previousKeyStroke = null;
-        for (KeyStroke keyStroke : allKeyStrokes) {
-            if (previousKeyStroke != null) {
-                String keys = previousKeyStroke.getKey() + keyStroke.getKey();
-                long timeBetweenKeys = keyStroke.getTime() - previousKeyStroke.getTime();
-                freeTextDigraphTimings.add(new Digraph(keys, timeBetweenKeys));
-            }
-            previousKeyStroke = keyStroke;
-        }
-        System.out.println(freeTextDigraphTimings);
-        System.out.printf("Relative distance = %.2f\n", RelativeDistance.calculate(sampleKeyTimings, freeTextDigraphTimings));
-        System.out.printf("Absolute distance = %.2f\n", AbsoluteDistance.calculate(sampleKeyTimings, freeTextDigraphTimings, typingSpeedRatio));
-    }
-
-    private void processKey(KeyCode code, boolean isShiftDown) {
-        String key = code.getName();
-        if (code.isLetterKey() && !isShiftDown) {
-            key = key.toLowerCase();
-        }
-        this.allKeyStrokes.add(new KeyStroke(key, System.currentTimeMillis()));
-    }
 }
